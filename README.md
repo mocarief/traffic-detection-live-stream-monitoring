@@ -1,5 +1,7 @@
 CCTV Traffic Monitor with YOLOv8 and Flask
 
+![image info](./web-ui-1.png)
+
 This project implements a real-time CCTV traffic monitoring system using a Flask web application. It leverages YOLOv8 for object detection and ByteTrack for object tracking, displaying the processed video feed in a web browser. The system can detect and track vehicles, count line crossings, and provide real-time statistics.
 ✨ Key Features
 
