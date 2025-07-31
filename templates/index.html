@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCTV Traffic Monitor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"], input[type="number"] {
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            width: 100%;
+            transition: border-color 0.2s;
+        }
+        input[type="text"]:focus, input[type="number"]:focus {
+            border-color: #3b82f6; /* blue-500 */
+            outline: none;
+        }
+        button {
+            background-color: #2563eb; /* blue-700 */
+            color: #fff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background-color: #1d4ed8; /* blue-800 */
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            background-color: #9ca3af; /* gray-400 */
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status-message {
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+        .status-success {
+            background-color: #d1fae5; /* green-100 */
+            color: #065f46; /* green-800 */
+        }
+        .status-error {
+            background-color: #fee2e2; /* red-100 */
+            color: #991b1b; /* red-800 */
+        }
+        .status-info {
+            background-color: #e0f2fe; /* blue-100 */
+            color: #1e40af; /* blue-800 */
+        }
+        /* Style for the video stream */
+        #videoFeed {
+            width: 100%;
+            height: auto;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background-color: #000; /* Black background for video area */
+            display: block; /* Ensure it takes full width */
+        }
+        /* Styling for the stats table */
+        #statsTable {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        #statsTable th, #statsTable td {
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem;
+            text-align: left;
+        }
+        #statsTable th {
+            background-color: #f9fafb;
+            font-weight: 600;
+        }
+        #statsTable tbody tr:nth-child(even) {
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="p-6">
+    <div class="container mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Configuration Panel -->
+        <div class="lg:col-span-1 card p-6">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Stream Configuration</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="streamUrl" class="block text-sm font-medium text-gray-700 mb-1">CCTV Stream URL:</label>
+                    <input type="text" id="streamUrl" name="streamUrl" class="focus:ring-blue-500 focus:border-blue-500" placeholder="e.g., https://example.com/stream.m3u8" value="https://cctv.balitower.co.id/Jati-Pulo-001-702017_2/tracks-v1/index.fmp4.m3u8?timeout=20000000">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Crossing Line Coordinates (x1, y1, x2, y2):</label>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="x1" class="block text-xs font-medium text-gray-500 mb-1">Start X:</label>
+                            <input type="number" id="x1" name="x1" value="600" class="focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="y1" class="block text-xs font-medium text-gray-500 mb-1">Start Y:</label>
+                            <input type="number" id="y1" name="y1" value="400" class="focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="x2" class="block text-xs font-medium text-gray-500 mb-1">End X:</label>
+                            <input type="number" id="x2" name="x2" value="650" class="focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        <div>
+                            <label for="y2" class="block text-xs font-medium text-gray-500 mb-1">End Y:</label>
+                            <input type="number" id="y2" name="y2" value="800" class="focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+                <div class="flex space-x-4">
+                    <button id="startButton" class="w-1/2 flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                        <span>Start Monitoring</span>
+                    </button>
+                    <button id="stopButton" class="w-1/2 bg-red-600 hover:bg-red-700 disabled:bg-gray-400 flex items-center justify-center space-x-2" disabled>
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd"></path></svg>
+                        <span>Stop Monitoring</span>
+                    </button>
+                </div>
+                <div id="statusMessage" class="status-message hidden"></div>
+            </div>
+        </div>
+
+        <!-- Video Feed & Stats Panel -->
+        <div class="lg:col-span-2 card p-6">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Live Video Feed</h2>
+            <img id="videoFeed" src="" alt="Live Video Stream" class="w-full h-auto rounded-lg shadow-md mb-6">
+            
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Monitoring Statistics</h3>
+            <div id="statsDisplay" class="space-y-2">
+                <p class="text-gray-700"><strong>Stream Status:</strong> <span id="streamStatus" class="font-semibold text-blue-700">Not Started</span></p>
+                <p class="text-gray-700"><strong>Total Crossings:</strong> <span id="totalCrossings" class="font-semibold">0</span></p>
+                <h4 class="text-lg font-semibold mt-4 mb-2 text-gray-700">Recent Crossings:</h4>
+                <div class="overflow-x-auto">
+                    <table id="recentCrossingsTable" class="min-w-full divide-y divide-gray-200">
+                        <thead>
+                            <tr>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                                <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <!-- Recent crossings will be inserted here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const stopButton = document.getElementById('stopButton'); // Get the new stop button
+        const streamUrlInput = document.getElementById('streamUrl');
+        const x1Input = document.getElementById('x1');
+        const y1Input = document.getElementById('y1');
+        const x2Input = document.getElementById('x2');
+        const y2Input = document.getElementById('y2');
+        const videoFeed = document.getElementById('videoFeed');
+        const statusMessage = document.getElementById('statusMessage');
+        const streamStatusSpan = document.getElementById('streamStatus');
+        const totalCrossingsSpan = document.getElementById('totalCrossings');
+        const recentCrossingsTableBody = document.querySelector('#recentCrossingsTable tbody');
+
+        let statsInterval = null;
+
+        // Function to display status messages
+        function showStatus(message, type = 'info') {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message ${type === 'success' ? 'status-success' : type === 'error' ? 'status-error' : 'status-info'}`;
+            statusMessage.classList.remove('hidden');
+        }
+
+        // Function to fetch and update stats
+        async function updateStats() {
+            try {
+                const response = await fetch('/stats');
+                const data = await response.json();
+                streamStatusSpan.textContent = data.stream_status;
+                totalCrossingsSpan.textContent = data.total_crossings;
+
+                // Update recent crossings table
+                recentCrossingsTableBody.innerHTML = ''; // Clear existing rows
+                if (data.recent_crossings && data.recent_crossings.length > 0) {
+                    data.recent_crossings.forEach(event => {
+                        const row = recentCrossingsTableBody.insertRow();
+                        row.innerHTML = `
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${event.track_id}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${event.vehicle_type}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${new Date(event.timestamp * 1000).toLocaleTimeString()}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">(${event.position[0]}, ${event.position[1]})</td>
+                        `;
+                    });
+                } else {
+                    const row = recentCrossingsTableBody.insertRow();
+                    row.innerHTML = `<td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No recent crossings.</td>`;
+                }
+
+            } catch (error) {
+                console.error("Error fetching stats:", error);
+                streamStatusSpan.textContent = `Error fetching stats: ${error.message}`;
+            }
+        }
+
+        startButton.addEventListener('click', async () => {
+            const streamUrl = streamUrlInput.value;
+            const x1 = parseInt(x1Input.value);
+            const y1 = parseInt(y1Input.value);
+            const x2 = parseInt(x2Input.value);
+            const y2 = parseInt(y2Input.value);
+
+            if (!streamUrl || isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) {
+                showStatus('Please fill in all fields correctly.', 'error');
+                return;
+            }
+
+            const crossingLine = {
+                start: [x1, y1],
+                end: [x2, y2]
+            };
+
+            showStatus('Starting monitoring...', 'info');
+            startButton.disabled = true; // Disable start button
+            stopButton.disabled = true; // Disable stop button temporarily
+
+            try {
+                const response = await fetch('/configure_monitoring', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        streamUrl: streamUrl,
+                        crossingLine: crossingLine
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showStatus(result.message, 'success');
+                    console.log("Setting videoFeed.src to /video_feed"); // Debugging log
+                    videoFeed.src = '/video_feed'; // Start the video feed
+                    videoFeed.onerror = () => {
+                        console.error("videoFeed onerror triggered. Stream failed to load."); // Debugging log
+                        showStatus('Failed to load video stream. Check URL and backend logs.', 'error');
+                        videoFeed.src = ''; // Clear src on error
+                        startButton.disabled = false; // Re-enable start
+                        stopButton.disabled = true; // Keep stop disabled
+                        if (statsInterval) clearInterval(statsInterval);
+                    };
+                    // Start fetching stats periodically
+                    if (statsInterval) {
+                        clearInterval(statsInterval);
+                    }
+                    statsInterval = setInterval(updateStats, 1000); // Update every 1 second
+                    updateStats(); // Initial stats update
+                    stopButton.disabled = false; // Enable stop button
+                } else {
+                    showStatus(`Error: ${result.message}`, 'error');
+                    videoFeed.src = ''; // Clear video source on error
+                    if (statsInterval) {
+                        clearInterval(statsInterval); // Stop stats updates on error
+                    }
+                }
+            } catch (error) {
+                console.error("Fetch error during configuration:", error); // Specific fetch error
+                showStatus(`Network error: ${error.message}. Check if backend is running.`, 'error');
+                videoFeed.src = ''; // Clear video source on error
+                if (statsInterval) {
+                    clearInterval(statsInterval); // Stop stats updates on error
+                }
+            } finally {
+                startButton.disabled = false; // Re-enable start button
+            }
+        });
+
+        stopButton.addEventListener('click', async () => {
+            showStatus('Stopping monitoring...', 'info');
+            startButton.disabled = true; // Disable start button temporarily
+            stopButton.disabled = true; // Disable stop button
+
+            try {
+                const response = await fetch('/stop_monitoring', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({}), // Empty body for a simple stop command
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showStatus(result.message, 'success');
+                    videoFeed.src = ''; // Clear the video feed
+                    if (statsInterval) {
+                        clearInterval(statsInterval); // Stop stats updates
+                    }
+                    streamStatusSpan.textContent = 'Stopped'; // Manually update status
+                    totalCrossingsSpan.textContent = '0'; // Reset crossings
+                    recentCrossingsTableBody.innerHTML = `<td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No recent crossings.</td>`;
+                } else {
+                    showStatus(`Error stopping: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                console.error("Fetch error during stop:", error);
+                showStatus(`Network error: ${error.message}. Check if backend is running.`, 'error');
+            } finally {
+                startButton.disabled = false; // Re-enable start button
+                stopButton.disabled = true; // Keep stop button disabled until new stream starts
+            }
+        });
+
+
+        // Initial update of stats when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+             // Start fetching stats immediately to get initial status
+             statsInterval = setInterval(updateStats, 1000);
+             updateStats();
+        });
+
+    </script>
+</body>
+</html>
